@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<services xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/service-definition-3.xsd">
+
+    <service verb="update" noun="MoquiTraining">
+        <in-parameters>
+            <parameter name="trainingId" />
+            <parameter name="trainingName" required="true" />
+            <parameter name="trainingDate" />
+            <parameter name="trainingPrice" />
+            <parameter name="trainingDuration" />
+            <parameter name="lastUpdatedStamp" />
+        </in-parameters>
+
+        <out-parameters>
+            <parameter name="trainingId" />
+            <parameter name="status" />
+        </out-parameters>
+
+        <actions>
+            <set field="existingTraining" from="ec.entity.find('org.moqui.training.MoquiTraining').condition('trainingId', context.trainingId).one()" />
+<!--            <if condition="context.trainingId">-->
+            <if condition="existingTraining">
+                <log level="info" message="Updating training with ID: ${context.trainingId}"/>
+                <service-call name="update#org.moqui.training.MoquiTraining" in-map="context"/>
+                <set field="status" value="Updated"/>
+            </if>
+            <else>
+                <log level="info" message="Entering the ELSE block to create a new record"/>
+                <service-call name="create#org.moqui.training.MoquiTraining" in-map="context"/>
+                <set field="status" value="Created"/>
+            </else>
+        </actions>
+    </service>
+
+</services>
