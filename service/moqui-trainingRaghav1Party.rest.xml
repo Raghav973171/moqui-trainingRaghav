@@ -13,10 +13,10 @@
                 <entity name="Party" operation="create"/>
             </method>
             <method type="patch">
-                <service name="TutorialService.patch#Party"/>
+                <service name="service.patch#Party"/>
             </method>
             <method type="delete">
-                <service name="TutorialService.delete#Party"/>
+                <service name="service.delete#Party"/>
             </method>
 
             <resource name="contact" require-authorization="anonymous-all">
@@ -27,7 +27,7 @@
                     <entity name="ContactMech" operation="create"/>
                 </method>
                 <method type="delete">
-                    <service name="TutorialService.delete#ContactMech"/>
+                    <service name="service.delete#ContactMech"/>
                 </method>
             </resource>
         </id>
@@ -48,29 +48,29 @@
                 <entity name="Product" operation="update"/>
             </method>
             <method type="delete">
-                <service name="TutorialService.delete#Product"/>
+                <service name="service.delete#Product"/>
             </method>
         </id>
     </resource>
 
     <resource name="orders" require-authorization="anonymous-all">
         <method type="post">
-            <service name="TutorialService.create#OrderHeader"/>
+            <service name="service.create#OrderHeader"/>
         </method>
         <id name="orderId">
             <method type="get">
-                <service name="TutorialService.find#OrderHeader"/>
+                <service name="service.find#OrderHeader"/>
             </method>
             <method type="patch">
-                <service name="TutorialService.patch#OrderHeader"/>
+                <service name="service.patch#OrderHeader"/>
             </method>
             <method type="delete">
-                <service name="TutorialService.delete#OrderHeader"/>
+                <service name="service.delete#OrderHeader"/>
             </method>
 
             <resource name="items" require-authorization="anonymous-all">
                 <method type="post">
-                    <service name="TutorialService.create#OrderItem"/>
+                    <service name="service.create#OrderItem"/>
                 </method>
             </resource>
 
@@ -83,7 +83,7 @@
             <entity name="OrderItem" operation="list"/>
         </method>
         <method type="delete">
-            <service name="TutorialService.delete#OrderItem"/>
+            <service name="service.delete#OrderItem"/>
         </method>
 
     </resource>
