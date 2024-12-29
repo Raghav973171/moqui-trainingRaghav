@@ -39,6 +39,10 @@
         <field name="city" type="text-medium" />
         <field name="state" type="text-medium" />
         <field name="postalCode" type="text-medium" />
+
+               <relationship type="one" related="Party">
+            <key-map field-name="partyId"/>
+        </relationship>
     </entity>
 
 </entities>
