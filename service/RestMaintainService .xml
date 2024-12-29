@@ -26,6 +26,9 @@
         </actions>
     </service>
 
+
+          <
+
     <service verb="delete" noun="Party">
         <in-parameters>
             <auto-parameters entity-name="Party" include="pk"/>
@@ -50,25 +53,25 @@
                 <entity-find entity-name="OrderItem" list="itemList">
                     <econdition field-name="orderId" from="order.orderId"/>
                 </entity-find>
-                <log message="---------------itemList=${itemList}--------------"/>
+                
                 <iterate list="itemList" entry="item">
                     <entity-delete value-field="item"/>
                 </iterate>
-                <log message="---------------itemList deleted--------------"/>
+                
                 <entity-delete value-field="order"/>
             </iterate>
 
             <entity-find entity-name="ContactMech" list="contactList">
                 <econdition field-name="partyId" from="existingParty.partyId"/>
             </entity-find>
-            <log message="---------------existingContact=${contactList}--------------"/>
+           
 
             <if condition="contactList">
                 <then>
                     <iterate list="contactList" entry="contact">
                         <entity-delete value-field="contact"/>
                     </iterate>
-                    <log message="--------------Related Contacts also deleted--------------"/>
+                    
                 </then>
             </if>
 
@@ -132,7 +135,7 @@
             <parameter name="orderId"/>
         </out-parameters>
         <actions>
-            <log message="-----------Return comes to delete#OrderHeader = ${orderId}--------"/>
+            
             <service-call name="TutorialService.delete#OrderItem" in-map="context" out-map="result"/>
             <entity-delete-by-condition entity-name="OrderHeader">
                 <econdition field-name="orderId" from="context.orderId"/>
@@ -168,10 +171,10 @@
             <entity-find entity-name="OrderItem" list="itemList">
                 <econdition field-name="orderId" from="context.orderId"/>
             </entity-find>
-            <log message="-----------List of OrderItems in delete#OrderItem = ${itemList}--------" level="warn"/>
+           
             <iterate list="itemList" entry="item">
                 <entity-delete value-field="item"/>
-                <log message="-----------Item Deleted ${item.orderItemSeqId}--------" level="warn"/>
+              
             </iterate>
         </actions>
     </service>
@@ -185,7 +188,7 @@
         </out-parameters>
         <actions>
             <entity-find-one entity-name="OrderHeader" value-field="recordToUpdate"/>
-            <log message="--------------OrderHeader record found is ${recordToUpdate}----------------"/>
+            
             <entity-find-one entity-name="ContactMech" value-field="existingRecord1">
                 <field-map field-name="contactMechId" from="context.shippingContactMechId"/>
             </entity-find-one>
@@ -200,7 +203,7 @@
             <set field="recordToUpdate.shippingContactMechId" from="context.shippingContactMechId"/>
             <set field="recordToUpdate.billingContactMechId" from="context.billingContactMechId"/>
             <entity-update value-field="recordToUpdate"/>
-            <log message="--------------Updated OrderHeader record is ${recordToUpdate}----------------"/>
+           
         </actions>
     </service>
     
@@ -227,8 +230,7 @@
                 <field-map field-name="contactMechId" from="context.billingContactMechId"/>
             </entity-find-one>
 
-            <log message="-----------------Address Record Found by Shipping Id----${recordByShippingId}-----------------"/>
-            <log message="-----------------Address Record Found by Billing Id----${recordByBillingId}-----------------"/>
+           
 
             <if condition="isEmpty(recordByShippingId)">
                 <then>
