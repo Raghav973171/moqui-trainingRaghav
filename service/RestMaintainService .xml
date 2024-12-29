@@ -1,319 +1,318 @@
-<!--<services xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="$LOCAL_SCHEMA$"-->
-<!--       xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/service-definition-3.xsd">-->
+<?xml version="1.0" encoding="UTF-8"?>
+<services xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:noNamespaceSchemaLocation="http://moqui.org/xsd/service-definition-3.xsd">
 
-
-<!-- Service for Updating Party and Related ContactMech -->
-
-<service>
-    <service verb="update" noun="PartyAndRelated">
-
+<!--    Create a new service to fetch records from the MoquiTraining entity.-->
+    <service verb="find" noun="MoquiTraining">
+<!--        Allow filtering by trainingName or trainingId.-->
         <in-parameters>
-            <parameter name="partyId" required="true" />
-            <parameter name="partyType" />
-            <parameter name="firstName" />
-            <parameter name="lastName" />
+            <parameter name="trainingId" required="true"/>
         </in-parameters>
+<!--        Return a list of records containing only trainingId, trainingName, and trainingDate.-->
+        <out-parameters>
+            <parameter name="trainingList"/>
+        </out-parameters>
         <actions>
-            <where value-field="" entity-name="Party">
-                <set field="partyType" from="partyType" />
-                <set field="firstName" from="firstName" />
-                <set field="lastName" from="lastName" />
-                <where field="partyId" from="partyId" /></where>
+            <entity-find entity-name="org.moqui.training.MoquiTraining" list="trainingList">
+                <econdition field-name="trainingId" value="${trainingId}"/>
+                <select-field field-name="trainingId, trainingName, trainingDate"/>
+            </entity-find>
+        </actions>
+    </service>
 
-            </actions>
+    <service verb="store" noun="MoquiTraining">
+        <in-parameters>
+            <parameter name="trainingId" required="true"/>
+            <parameter name="trainingName" required="true"/>
+            <parameter name="trainingDate" required="true"/>
+            <parameter name="trainingPrice" required="true"/>
+            <parameter name="trainingDuration" required="true"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="trainingId" required="true"/>
+            <parameter name="trainingName" required="true"/>
+            <parameter name="trainingDate" />
+            <parameter name="trainingPrice" />
+            <parameter name="trainingDuration"/>
+        </out-parameters>
+        <actions>
+            <entity-find-one entity-name="org.moqui.training.MoquiTraining" value-field="existingRecord">
+            </entity-find-one>
+            <if condition="existingRecord">
+                <then>
+                    <set field="existingRecord.trainingDate" from="trainingDate"/>
+                    <set field="existingRecord.trainingName" from="trainingName"/>
+                    <set field="existingRecord.trainingPrice" from="trainingPrice"/>
+                    <set field="existingRecord.trainingDuration" from="trainingDuration"/>
+                    <entity-update value-field="existingRecord"/>
+                </then>
+            </if>
+            <else>
+                <service-call name="org.moqui.training.MoquiTraining.create#MoquiTraining" in-map="context" out-map="context"/>
+            </else>
+        </actions>
+    </service>
+
+
+    <service verb="patch" noun="Party">
+        <in-parameters>
+            <auto-parameters entity-name="Party">
+                <exclude field-name="lastUpdatedStamp"/>
+            </auto-parameters>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="partyId"/>
+        </out-parameters>
+        <actions>
+            <entity-find-one entity-name="Party" value-field="existingRecord"/>
+            <if condition="isEmpty(existingRecord)">
+                <then>
+                    <return message="PartyId doesn't Exist" type="warning"/>
+                </then>
+            </if>
+            <set field="existingRecord.firstName" from="firstName"/>
+            <set field="existingRecord.lastName" from="lastName"/>
+            <entity-update value-field="existingRecord"/>
+        </actions>
+    </service>
+
+    <service verb="delete" noun="Party">
+        <in-parameters>
+            <auto-parameters entity-name="Party" include="pk"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="partyId"/>
+        </out-parameters>
+        <actions>
+            <entity-find-one entity-name="Party" value-field="existingParty"/>
+            <if condition="isEmpty(existingParty)">
+                <then>
+                    <return message="PartyId doesn't Exist" type="warning"/>
+                </then>
+            </if>
+
+            <entity-find entity-name="OrderHeader" list="orderList">
+                <econdition field-name="partyId" from="existingParty.partyId"/>
+            </entity-find>
+            <log message="---------------List of Orders=${orderList}----------------"/>
+
+            <iterate list="orderList" entry="order">
+                <entity-find entity-name="OrderItem" list="itemList">
+                    <econdition field-name="orderId" from="order.orderId"/>
+                </entity-find>
+                <log message="---------------itemList=${itemList}--------------"/>
+                <iterate list="itemList" entry="item">
+                    <entity-delete value-field="item"/>
+                </iterate>
+                <log message="---------------itemList deleted--------------"/>
+                <entity-delete value-field="order"/>
+            </iterate>
+
             <entity-find entity-name="ContactMech" list="contactList">
-                <econdition field="partyId" from="partyId" />
+                <econdition field-name="partyId" from="existingParty.partyId"/>
             </entity-find>
-            <foreach list="contactList" entry="contact">
-                <entity-update value-field="" entity-name="ContactMech">
-                    <set field="state" value="Updated State" />
-                    <where field="contactMechId" from="contact.contactMechId" />
-                </entity-update>
-            </foreach>
-        </service>
+            <log message="---------------existingContact=${contactList}--------------"/>
 
+            <if condition="contactList">
+                <then>
+                    <iterate list="contactList" entry="contact">
+                        <entity-delete value-field="contact"/>
+                    </iterate>
+                    <log message="--------------Related Contacts also deleted--------------"/>
+                </then>
+            </if>
 
-    <!-- Service for Updating OrderHeader and Related OrderItem -->
-    <service  verb="update" noun="OrderHeaderAndItems">
+            <entity-delete value-field="existingParty"/>
+        </actions>
+    </service>
+
+    <service verb="delete" noun="ContactMech">
         <in-parameters>
-            <parameter name="orderId" required="true" />
-            <parameter name="orderDate" />
-            <parameter name="status" />
+            <parameter name="partyId"/>
+            <parameter name="contactMechId"/>
         </in-parameters>
+        <out-parameters>
+            <parameter name="contactMechId"/>
+        </out-parameters>
         <actions>
-            <entity-update value-field="" entity-name="OrderHeader">
-                <set field="orderDate" from="orderDate" />
-                <set field="status" from="status" />
-                <where field="orderId" from="orderId" />
-            </entity-update>
-            <entity-find entity-name="OrderItem" list="orderItems">
-                <econdition field="orderId" from="orderId" />
+            <entity-find entity-name="OrderHeader" list="recordByShippingId">
+                <econdition field-name="shippingContactMechId" from="context.contactMechId"/>
             </entity-find>
-            <foreach list="orderItems" entry="item">
-                <entity-update value-field="" entity-name="OrderItem">
-                    <set field="status" value="Updated Status" />
-                    <where field="orderItemSeqId" from="item.orderItemSeqId" />
-                </entity-update>
-            </foreach>
-        </actions>
-    </service>
+            <iterate list="recordByShippingId" entry="order">
+                <entity-delete value-field="order"/>
+            </iterate>
 
-
-
-    <!-- Service for Updating ContactMech Independently -->
-    <service  verb="update" noun="ContactMech">
-        <in-parameters>
-            <parameter name="contactMechId" required="true" />
-            <parameter name="streetAddress" />
-            <parameter name="city" />
-            <parameter name="state" />
-            <parameter name="postalCode" />
-        </in-parameters>
-        <actions>
-            <entity-update value-field="" entity-name="ContactMech">
-                <set field="streetAddress" from="streetAddress" />
-                <set field="city" from="city" />
-                <set field="state" from="state" />
-                <set field="postalCode" from="postalCode" />
-                <where field="contactMechId" from="contactMechId" />
-            </entity-update>
-        </actions>
-    </service>
-
-    <!-- Service for Creating a Party and Related Entities -->
-    <service verb="create" noun="PartyAndRelated">
-        <in-parameters>
-            <parameter name="partyType" />
-            <parameter name="firstName" />
-            <parameter name="lastName" />
-        </in-parameters>
-        <actions>
-            <entity-create value-field="" entity-name="Party">
-                <set field="partyType" from="partyType" />
-                <set field="firstName" from="firstName" />
-                <set field="lastName" from="lastName" />
-            </entity-create>
-        </actions>
-    </service>
-
-    <!-- Service for Getting All Parties -->
-    <service  verb="read" noun="AllParties">
-        <actions>
-            <entity-find entity-name="Party" list="partyList" />
-        </actions>
-    </service>
-
-    <!-- Service for Getting a Party by ID -->
-    <service name="find#PartyById" verb="read" noun="Party">
-        <in-parameters>
-            <parameter name="partyId" required="true" />
-        </in-parameters>
-        <actions>
-            <entity-find-one entity-name="Party" value="party">
-                <econdition field="partyId" from="partyId" />
-            </entity-find-one>
-        </actions>
-    </service>
-
-    <!-- Service for Deleting a Party and Related Entities -->
-    <service  verb="delete" noun="PartyAndRelated">
-        <in-parameters>
-            <parameter name="partyId" required="true" />
-        </in-parameters>
-        <actions>
-            <entity-delete entity-name="ContactMech">
-                <where field="partyId" from="partyId" />
-            </entity-delete>
-            <entity-delete entity-name="Party">
-                <where field="partyId" from="partyId" />
-            </entity-delete>
-        </actions>
-    </service>
-
-    <!-- Service for Creating a Contact Mechanism -->
-    <service  verb="create" noun="ContactMech">
-        <in-parameters>
-            <parameter name="partyId" required="true" />
-            <parameter name="streetAddress" />
-            <parameter name="city" />
-            <parameter name="state" />
-            <parameter name="postalCode" />
-        </in-parameters>
-        <actions>
-            <entity-create value-field="" entity-name="ContactMech">
-                <set field="partyId" from="partyId" />
-                <set field="streetAddress" from="streetAddress" />
-                <set field="city" from="city" />
-                <set field="state" from="state" />
-                <set field="postalCode" from="postalCode" />
-            </entity-create>
-        </actions>
-    </service>
-
-    <!-- Service for Getting a Contact Mechanism by ID -->
-    <service  verb="read" noun="ContactMech">
-        <in-parameters>
-            <parameter name="contactMechId" required="true" />
-        </in-parameters>
-        <actions>
-            <entity-find-one value-field="" entity-name="ContactMech" value="contact">
-                <econdition field="contactMechId" from="contactMechId" />
-            </entity-find-one>
-        </actions>
-    </service>
-
-    <!-- Service for Deleting a Contact Mechanism -->
-    <service  verb="delete" noun="ContactMech">
-        <in-parameters>
-            <parameter name="contactMechId" required="true" />
-        </in-parameters>
-        <actions>
-            <entity-delete value-field="" entity-name="ContactMech">
-                <where field="contactMechId" from="contactMechId" />
-            </entity-delete>
-        </actions>
-    </service>
-
-    <!-- Service for Creating a Product -->
-    <service  verb="create" noun="Product">
-        <in-parameters>
-            <parameter name="productName" required="true" />
-            <parameter name="color" />
-            <parameter name="size" />
-        </in-parameters>
-        <actions>
-            <entity-create value-field="" entity-name="Product">
-                <set field="productName" from="productName" />
-                <set field="color" from="color" />
-                <set field="size" from="size" />
-            </entity-create>
-        </actions>
-    </service>
-
-    <!-- Service for Getting a Product by ID -->
-    <service  verb="read" noun="Product">
-        <in-parameters>
-            <parameter name="productId" required="true" />
-        </in-parameters>
-        <actions>
-            <entity-find-one entity-name="Product" value="product">
-                <econdition field="productId" from="productId" />
-            </entity-find-one>
-        </actions>
-    </service>
-
-
-    <!-- Service for Creating an Order Header and Items -->
-    <service  verb="create" noun="OrderHeaderAndItems">
-        <in-parameters>
-            <parameter name="orderDate" required="true" />
-            <parameter name="status" />
-            <parameter name="orderItems" type="list" />
-        </in-parameters>
-        <actions>
-            <entity-create value-field="" entity-name="OrderHeader">
-                <set field="orderDate" from="orderDate" />
-                <set field="status" from="status" />
-            </entity-create>
-            <foreach list="orderItems" entry="item">
-                <entity-create value-field="" entity-name="OrderItem">
-                    <set field="orderId" from="orderHeader.orderId" />
-                    <set field="productId" from="item.productId" />
-                    <set field="quantity" from="item.quantity" />
-                    <set field="price" from="item.price" />
-                </entity-create>
-            </foreach>
-        </actions>
-    </service>
-
-    <!-- Service for Getting an Order Header by ID -->
-    <service  verb="read" noun="OrderHeader">
-        <in-parameters>
-            <parameter name="orderId" required="true" />
-        </in-parameters>
-        <actions>
-            <entity-find-one value-field="" entity-name="OrderHeader" value="orderHeader">
-                <econdition field="orderId" from="orderId" />
-            </entity-find-one>
-        </actions>
-    </service>
-
-
-<service  verb="delete" noun="OrderHeaderAndItems">
-    <in-parameters>
-        <parameter name="orderId" required="true" />
-    </in-parameters>
-    <actions>
-        <entity-delete value-field="" entity-name="OrderItem">
-            <where field="orderId" from="orderId" />
-        </entity-delete>
-        <entity-delete value-field="" entity-name="OrderHeader">
-            <where field="orderId" from="orderId" />
-        </entity-delete>
-    </actions>
-</service>
-
-
-    <service  verb="delete" noun="Product">
-        <in-parameters>
-            <parameter name="productId" required="true" />
-        </in-parameters>
-        <actions>
-            <!-- Delete any related entities if necessary -->
-            <entity-find entity-name="OrderItem" list="orderItems">
-                <econdition field="productId" from="productId" />
+            <entity-find entity-name="OrderHeader" list="recordByBillingId">
+                <econdition field-name="billingContactMechId" from="context.contactMechId"/>
             </entity-find>
-            <foreach list="orderItems" entry="orderItem">
-                <entity-delete value-field="" entity-name="OrderItem">
-                    <where field="orderItemSeqId" from="orderItem.orderItemSeqId" />
-                </entity-delete>
-            </foreach>
-
-            <!-- Delete the Product -->
-            <entity-delete value-field="" entity-name="Product">
-                <where field="productId" from="productId" />
-            </entity-delete>
+            <iterate list="recordByBillingId" entry="order">
+                <entity-delete value-field="order"/>
+            </iterate>
+            <entity-delete-by-condition entity-name="ContactMech">
+                <econdition field-name="contactMechId" from="context.contactMechId"/>
+            </entity-delete-by-condition>
         </actions>
     </service>
 
-
-    <service  verb="create" noun="OrderItem">
+    <service verb="delete" noun="Product">
         <in-parameters>
-
-            <parameter name="orderId" required="true" />
-            <parameter name="orderItemSeqId" required="true" />
-            <parameter name="productId" required="true" />
-            <parameter name="quantity" required="true" />
-            <parameter name="unitPrice" required="true" />
-            <parameter name="status" />
+            <parameter name="productId"/>
         </in-parameters>
+        <out-parameters>
+            <parameter name="productId"/>
+        </out-parameters>
         <actions>
-            <entity-create value-field="" entity-name="OrderItem">
-                <set field="orderId" from="orderId" />
-                <set field="orderItemSeqId" from="orderItemSeqId" />
-                <set field="productId" from="productId" />
-                <set field="quantity" from="quantity" />
-                <set field="unitPrice" from="unitPrice" />
-                <set field="status" from="status" value="Created" />
-            </entity-create>
+            <entity-find-one entity-name="Product" value-field="existingProduct"/>
+            <entity-find entity-name="OrderItem" list="itemList">
+                <econdition field-name="productId" from="existingProduct.productId"/>
+            </entity-find>
+            <iterate list="itemList" entry="item">
+                <log message="-----------Order to delete is= ${item.orderId}--------"/>
+                <service-call name="delete#Main" in-map="item.orderId"/>
+            </iterate>
         </actions>
     </service>
 
 
-</service>
+    <service verb="delete" noun="OrderHeader">
+        <in-parameters>
+            <parameter name="orderId"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="orderId"/>
+        </out-parameters>
+        <actions>
+            <log message="-----------Return comes to delete#OrderHeader = ${orderId}--------"/>
+            <service-call name="TutorialService.delete#OrderItem" in-map="context" out-map="result"/>
+            <entity-delete-by-condition entity-name="OrderHeader">
+                <econdition field-name="orderId" from="context.orderId"/>
+            </entity-delete-by-condition>
+        </actions>
+    </service>
 
 
+    <service verb="find" noun="OrderHeader">
+        <in-parameters>
+            <parameter name="orderId"/>
+        </in-parameters>
+        <out-parameters>
+                <parameter name="order"/>
+                <parameter name="itemList" type="List"/>
+        </out-parameters>
+        <actions>
+            <entity-find entity-name="OrderItem" list="itemList">
+                <econdition field-name="orderId" from="context.orderId"/>
+            </entity-find>
+                <entity-find-one entity-name="OrderHeader" value-field="order"/>
+        </actions>
+    </service>
 
+    <service verb="delete" noun="OrderItem">
+        <in-parameters>
+            <auto-parameters entity-name="OrderItem" include="pk"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="orderItemSeqId"/>
+        </out-parameters>
+        <actions>
+            <entity-find entity-name="OrderItem" list="itemList">
+                <econdition field-name="orderId" from="context.orderId"/>
+            </entity-find>
+            <log message="-----------List of OrderItems in delete#OrderItem = ${itemList}--------" level="warn"/>
+            <iterate list="itemList" entry="item">
+                <entity-delete value-field="item"/>
+                <log message="-----------Item Deleted ${item.orderItemSeqId}--------" level="warn"/>
+            </iterate>
+        </actions>
+    </service>
 
+    <service verb="patch" noun="OrderHeader">
+        <in-parameters>
+            <auto-parameters entity-name="OrderHeader"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="orderId"/>
+        </out-parameters>
+        <actions>
+            <entity-find-one entity-name="OrderHeader" value-field="recordToUpdate"/>
+            <log message="--------------OrderHeader record found is ${recordToUpdate}----------------"/>
+            <entity-find-one entity-name="ContactMech" value-field="existingRecord1">
+                <field-map field-name="contactMechId" from="context.shippingContactMechId"/>
+            </entity-find-one>
+            <entity-find-one entity-name="ContactMech" value-field="existingRecord2">
+                <field-map field-name="contactMechId" from="context.billingContactMechId"/>
+            </entity-find-one>
+            <if condition="!(existingRecord1.partyId==existingRecord2.partyId)">
+                <then>
+                    <return message="ContactMechId doesn't exist for this partyId" type="warning"/>
+                </then>
+            </if>
+            <set field="recordToUpdate.shippingContactMechId" from="context.shippingContactMechId"/>
+            <set field="recordToUpdate.billingContactMechId" from="context.billingContactMechId"/>
+            <entity-update value-field="recordToUpdate"/>
+            <log message="--------------Updated OrderHeader record is ${recordToUpdate}----------------"/>
+        </actions>
+    </service>
+    
+    <service verb="create" noun="OrderHeader">
+       <in-parameters>
+           <auto-parameters entity-name="OrderHeader" include="nonpk"/>
+            <parameter name="listOfItems" type="List">
+                <parameter name="orderItem" type="Map">
+                    <parameter name="productId"/>
+                    <parameter name="quantity"/>
+                    <parameter name="status"/>
+                </parameter>
+            </parameter>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="finalMp"/>
+        </out-parameters>
+        <actions>
+            <entity-find-one entity-name="ContactMech" value-field="recordByShippingId">
+                <field-map field-name="contactMechId" from="context.shippingContactMechId"/>
+            </entity-find-one>
 
+            <entity-find-one entity-name="ContactMech" value-field="recordByBillingId">
+                <field-map field-name="contactMechId" from="context.billingContactMechId"/>
+            </entity-find-one>
 
+            <log message="-----------------Address Record Found by Shipping Id----${recordByShippingId}-----------------"/>
+            <log message="-----------------Address Record Found by Billing Id----${recordByBillingId}-----------------"/>
 
+            <if condition="isEmpty(recordByShippingId)">
+                <then>
+                    <return message="Given ShippingContactId doesn't exist" type="warning"/>
+                </then>
+            </if>
+            <if condition="(recordByBillingId==null)">
+                <then>
+                    <return message="Given BillingContactId doesn't exist" type="warning"/>
+                </then>
+            </if>
+            <if condition="(recordByBillingId.partyId!=recordByShippingId.partyId)">
+                <then>
+                    <return message="No partyId exists for entered Shipping and Billing ID" type="warning"/>
+                </then>
+            </if>
 
+            <service-call name="create#OrderHeader" in-map="context" out-map="mp"/>
+            <iterate list="listOfItems" entry="item">
+                <set field="item.orderId" value="${mp.orderId}"/>
+                <service-call name="create#OrderItem" in-map="item" out-map="finalMp"/>
+            </iterate>
+        </actions>
+    </service>
 
-
-
-
-
-
-
-
+    <service verb="create" noun="OrderItem" type="entity-auto">
+        <in-parameters>
+            <auto-parameters entity-name="OrderItem" include="nonpk">
+                <exclude field-name="lastUpdatedStamp"/>
+            </auto-parameters>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="orderItemSeqId"/>
+            <parameter name="orderId"/>
+        </out-parameters>
+    </service>
+</services>
