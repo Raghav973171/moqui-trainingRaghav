@@ -1,0 +1,38 @@
+<services>
+    <service verb="create" noun="MoquiTraining">
+        <in-parameters>
+            <auto-parameters entity-name="org.moqui.training.MoquiTraining" include="nonpk"/>
+            <parameter name="trainingName" required="true" validator="string-not-empty"/>
+            <parameter name="trainingDate" required="true" validator="date" />
+            <parameter name="trainingPrice" required="true" validator="decimal-positive"/>
+            <parameter name="trainingDuration" required="true" validator="integer-positive"/>
+            <parameter name="lastUpdatedStamp" required="false" validator="date" format="yyyy-MM-dd HH:mm:ss"/>
+        </in-parameters>
+        <out-parameters>
+            <parameter name="trainingId"/>
+        </out-parameters>
+
+        <actions>
+<!--            <service-call name="create#org.moqui.training.MoquiTraining" out-map="context"/>-->
+<!--            <if condition="roleTypeId">-->
+<!--                <service-call name="create#org.moqui.training.MoquiTraining"/>-->
+<!--            </if>-->
+            <script>
+                if (true) {
+                ec.service.sync().name("create#org.moqui.training.MoquiTraining")
+                .parameters(context).call()
+                if (ec.message.hasError()) return
+                }
+                return;
+                // end inline script
+                // make sure the last statement is not considered the return value
+                return;
+            </script>
+        </actions>
+
+    </service>
+</services>
+
+
+
+
