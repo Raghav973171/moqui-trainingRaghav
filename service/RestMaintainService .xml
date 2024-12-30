@@ -17,7 +17,7 @@
             <entity-find-one entity-name="Party" value-field="existingRecord"/>
             <if condition="isEmpty(existingRecord)">
                 <then>
-                    <return message="PartyId doesn't Exist" type="warning"/>
+                    <return message="this doesn't Exist" type="warning"/>
                 </then>
             </if>
             <set field="existingRecord.firstName" from="firstName"/>
@@ -27,7 +27,7 @@
     </service>
 
 
-          <
+
 
     <service verb="delete" noun="Party">
         <in-parameters>
@@ -47,31 +47,31 @@
             <entity-find entity-name="OrderHeader" list="orderList">
                 <econdition field-name="partyId" from="existingParty.partyId"/>
             </entity-find>
-            <log message="---------------List of Orders=${orderList}----------------"/>
+
 
             <iterate list="orderList" entry="order">
                 <entity-find entity-name="OrderItem" list="itemList">
                     <econdition field-name="orderId" from="order.orderId"/>
                 </entity-find>
-                
+
                 <iterate list="itemList" entry="item">
                     <entity-delete value-field="item"/>
                 </iterate>
-                
+
                 <entity-delete value-field="order"/>
             </iterate>
 
             <entity-find entity-name="ContactMech" list="contactList">
                 <econdition field-name="partyId" from="existingParty.partyId"/>
             </entity-find>
-           
+
 
             <if condition="contactList">
                 <then>
                     <iterate list="contactList" entry="contact">
                         <entity-delete value-field="contact"/>
                     </iterate>
-                    
+
                 </then>
             </if>
 
@@ -120,7 +120,7 @@
                 <econdition field-name="productId" from="existingProduct.productId"/>
             </entity-find>
             <iterate list="itemList" entry="item">
-                <log message="-----------Order to delete is= ${item.orderId}--------"/>
+
                 <service-call name="delete#Main" in-map="item.orderId"/>
             </iterate>
         </actions>
@@ -135,7 +135,7 @@
             <parameter name="orderId"/>
         </out-parameters>
         <actions>
-            
+
             <service-call name="TutorialService.delete#OrderItem" in-map="context" out-map="result"/>
             <entity-delete-by-condition entity-name="OrderHeader">
                 <econdition field-name="orderId" from="context.orderId"/>
@@ -149,14 +149,14 @@
             <parameter name="orderId"/>
         </in-parameters>
         <out-parameters>
-                <parameter name="order"/>
-                <parameter name="itemList" type="List"/>
+            <parameter name="order"/>
+            <parameter name="itemList" type="List"/>
         </out-parameters>
         <actions>
             <entity-find entity-name="OrderItem" list="itemList">
                 <econdition field-name="orderId" from="context.orderId"/>
             </entity-find>
-                <entity-find-one entity-name="OrderHeader" value-field="order"/>
+            <entity-find-one entity-name="OrderHeader" value-field="order"/>
         </actions>
     </service>
 
@@ -171,10 +171,10 @@
             <entity-find entity-name="OrderItem" list="itemList">
                 <econdition field-name="orderId" from="context.orderId"/>
             </entity-find>
-           
+
             <iterate list="itemList" entry="item">
                 <entity-delete value-field="item"/>
-              
+
             </iterate>
         </actions>
     </service>
@@ -188,7 +188,7 @@
         </out-parameters>
         <actions>
             <entity-find-one entity-name="OrderHeader" value-field="recordToUpdate"/>
-            
+
             <entity-find-one entity-name="ContactMech" value-field="existingRecord1">
                 <field-map field-name="contactMechId" from="context.shippingContactMechId"/>
             </entity-find-one>
@@ -203,13 +203,13 @@
             <set field="recordToUpdate.shippingContactMechId" from="context.shippingContactMechId"/>
             <set field="recordToUpdate.billingContactMechId" from="context.billingContactMechId"/>
             <entity-update value-field="recordToUpdate"/>
-           
+
         </actions>
     </service>
-    
+
     <service verb="create" noun="OrderHeader">
-       <in-parameters>
-           <auto-parameters entity-name="OrderHeader" include="nonpk"/>
+        <in-parameters>
+            <auto-parameters entity-name="OrderHeader" include="nonpk"/>
             <parameter name="listOfItems" type="List">
                 <parameter name="orderItem" type="Map">
                     <parameter name="productId"/>
@@ -230,16 +230,16 @@
                 <field-map field-name="contactMechId" from="context.billingContactMechId"/>
             </entity-find-one>
 
-           
+
 
             <if condition="isEmpty(recordByShippingId)">
                 <then>
-                    <return message="Given ShippingContactId doesn't exist" type="warning"/>
+                    <return message=" ShippingContactId doesn't exist" type="warning"/>
                 </then>
             </if>
             <if condition="(recordByBillingId==null)">
                 <then>
-                    <return message="Given BillingContactId doesn't exist" type="warning"/>
+                    <return message="BillingContactId doesn't exist" type="warning"/>
                 </then>
             </if>
             <if condition="(recordByBillingId.partyId!=recordByShippingId.partyId)">
