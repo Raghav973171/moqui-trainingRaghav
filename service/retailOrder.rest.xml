@@ -1,6 +1,6 @@
 <resource xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
           xsi:noNameSpaceSchemaLocation="http://moqui.org/xsd/rest-api-3.xsd"
-          name="retailorder" displayName="MoquiTraining" version="${moqui_version}" >
+          name="retailorder" displayName="RestServiceTesting" version="${moqui_version}" >
 
     <resource name="parties" require-authorization="anonymous-all">
         <method type="get">
